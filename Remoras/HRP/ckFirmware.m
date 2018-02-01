@@ -1,18 +1,25 @@
-function ckFirmware()
+function status = ckFirmware()
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % sets variable values based on what firmware version the HRP file comes
 % from
+%
+% 20170628 fr - updated to add check for if we even found the firmware
+% version we passed in
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 global PARAMS
 vnum = PARAMS.head.firmwareVersion;
-%vnum = 'V2.10L';
+status = 1;
+% vnum = 'V2.10';
 
 % make sure we switch back to correct directory after reading table in
 curr_dir = pwd;
 path = fileparts(which('triton'));
 cd(fullfile(path, 'Remoras\HRP'));
 
-fwTable = readtable('table_ckFirmware.csv', 'Format', '%s%f%f%f%f%f%f%f%f%f%f%f%f');
+fwTable = readtable('table_ckFirmware.csv', 'Format', ...
+    '%s%f%f%f%f%f%f%f%f%f%f%f%f%f', 'ReadVariableNames', false, ...
+    'HeaderLines', 1);
 
 fwCell = table2cell(fwTable);
 
@@ -21,6 +28,15 @@ for i = 1:size(fwCell, 1)
     if any(findstr(vnum, fwCell{i, 1})) == 1
         vInd = i; % firmware version row index
     end
+end
+
+% did we find the firmware version?
+if ~exist('vInd', 'var')
+    err_str = sprintf('Error: no matching firmware version for %s. Please update table_ckFirmware.csv.', vnum);
+    disp_msg(err_str);
+    disp(err_str);
+    status = 0;
+    return
 end
 
 PARAMS.cflag = fwCell{vInd, 2}; % 2 = cflag ind
@@ -35,6 +51,7 @@ PARAMS.nsectPerRawFile = fwCell{vInd, 10};  % 10 = sectors/raw file
 PARAMS.nBytesPerSect = fwCell{vInd, 11}; % 11 = bytes/sect
 PARAMS.compressionFactor = fwCell{vInd, 12}; % 12 = compression factor
 PARAMS.tailblk = fwCell{vInd, 13}; % 13 = 0 padding on tail
+PARAMS.bitsPerSamp = fwCell{vInd, 14}; % 14 = bits/sample
 
 % Things to print out if issues are encountered
 % disp(vnum);
