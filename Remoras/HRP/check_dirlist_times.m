@@ -1,4 +1,4 @@
-function check_dirlist_times(void)
+function check_dirlist_times(filenames)
 %
 % check_dirlist_times
 %
@@ -12,37 +12,11 @@ function check_dirlist_times(void)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 global PARAMS HANDLES
 
-prompt={'Whole directory [0] or One File [1] : '};
+get_recordingparams;  % get recording parameters
 
-def={num2str(1)};
-
-dlgTitle='Difftime One HRP Head File or Whole Directory ?';
-lineNo=1;
-AddOpts.Resize='on';
-AddOpts.WindowStyle='normal';
-AddOpts.Interpreter='tex';
-% display input dialog box window
-in=inputdlg(prompt,dlgTitle,lineNo,def,AddOpts);
-if length(in) == 0	% if cancel button pushed
-    disp_msg('Canceled button pushed')
-    return
-else
-    fflag = str2num(deal(in{1}));
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%
-
-if fflag == 1   % only one file
-    [fname,fpath]=uigetfile('*.hrp','Select HRP HEAD file to Check Directory Listing Times');
-    filename = [fpath,fname];
-
-    % if the cancel button is pushed, then no file is loaded so exit this script
-    if strcmp(num2str(fname),'0')
-        disp_msg('Canceled button pushed')
-        return
-    else % get raw HARP disk directory
-        get_recordingparams;  % get recording parameters
-        difftime_dirlist(filename,2);
+if size(filenames, 1) == 1
+        disp_msg_log('on')
+        difftime_dirlist(filenames,2);
         if PARAMS.head.numTimingError > 1
             figure(HANDLES.fig.main)
             if max(PARAMS.head.baddirlist(:,2)) ~= min(PARAMS.head.baddirlist(:,2))
@@ -51,39 +25,45 @@ if fflag == 1   % only one file
                 dh = 10;
             end
             hist(PARAMS.head.baddirlist(:,2),dh)
-            title(filename)
+            title(filenames)
             xlabel('Time between successive Directory Listings [seconds]')
             ylabel('Number')
         end
-    end
-elseif fflag == 0   % all *.head.hrp in directory
-    PARAMS.headall = [];
-    PARAMS.inpath = uigetdir(PARAMS.inpath,'Select Directory with *.hrp files');
-    if PARAMS.inpath == 0	% if cancel button pushed
-        disp_msg('Canceled button pushed')
-        return
-    end
-%     d = dir(fullfile(PARAMS.inpath,'*head.hrp'));    % hrp head files
-    d = dir(fullfile(PARAMS.inpath,'*.hrp'));    % hrp head files
-    fn = char(d.name);      % file names in directory
-    fnsz = size(fn);        % number of data files in directory
-    nfiles = fnsz(1);
-    
-    if nfiles < 1
-        disp_msg(['No data files in this directory: ',PARAMS.inpath])
-        disp_msg('Pick another directory')
-        check_dirlist_times
-    end
-    get_recordingparams;  % get recording parameters
-    for k = 1:nfiles
-        difftime_dirlist(fullfile(PARAMS.inpath,fn(k,:)),0);
-        mk_headSummary(k);
-    end
-    disp_headSummary(nfiles);
+        disp_msg_log('off');
+        
+        % save timecheck summary
+        timeck = [filenames(1:end-4), '_timeck.txt'];
+        disp('   ')
+        disp(['Time Check Message File: ' timeck])
+        
+        fod = fopen(timeck, 'w+');
+        for x = 1:length(PARAMS.msgs)
+           fprintf(fod, '%s\r\n', PARAMS.msgs{x});
+        end        
 else
-    disp_msg(' ')
-    disp_msg('Error : Choose [1] or [0]')
-    disp_msg(['You chose : ',num2str(fflag)])
-    disp_msg(' ')
-    check_dirlist_times
+%    d = dir(fullfile(PARAMS.inpath,'*head.hrp'));    % hrp head files
+    for k = 1:size(filenames,1)
+        filename = filenames(k, :);
+        
+        disp_msg_log('on');
+        difftime_dirlist(filename,2);
+        mk_headSummary(k);
+        disp_msg_log('off');
+        
+         % save timecheck summary
+        timeck = [filename(1:end-4), '_timeck.txt'];
+        disp('   ')
+        disp(['Time Check Message File: ' timeck])
+        
+        fod = fopen(timeck, 'w+');
+        for x = 1:length(PARAMS.msgs)
+           fprintf(fod, '%s\r\n', PARAMS.msgs{x});
+        end        
+    end
+    
+    disp_headSummary(size(filenames, 1));
 end
+
+
+% write messages to timecheck file
+

@@ -94,6 +94,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % read raw HARP dirlist (and disk header from within read_rawHARPdir)
+if isfield(PARAMS, 'head')
+    PARAMS = rmfield(PARAMS, 'head');
+end
 read_rawHARPdir(filename,0);
 
 if numFile > PARAMS.head.nextFile

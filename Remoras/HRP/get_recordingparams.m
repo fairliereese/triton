@@ -27,7 +27,7 @@ AddOpts.Interpreter='tex';
 % display input dialog box window
 in=inputdlg(prompt,dlgTitle,lineNo,def,AddOpts);
 if length(in) == 0	% if cancel button pushed
-    disp_msg('Canceled button pushed')
+    disp_msg('Cancel button pushed')
     return
 else
 

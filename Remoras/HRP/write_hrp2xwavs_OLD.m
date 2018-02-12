@@ -44,23 +44,24 @@ if ~exist(outdir)
 end
 
 % display flag: display values = 1
-PARAMS.dflag = d;
+if d
+    dflag = 1;
+else
+    dflag = 0;
+end
 
 % read raw HARP dirlist (and disk header from within read_rawHARPdir)
-if isfield(PARAMS, 'head')
-    PARAMS = rmfield(PARAMS, 'head');
-end
 read_rawHARPdir(infilename,0);
 
 % check firmware for compression or multiple channels
 ckFirmware;
 
 % check for dirlist timing problems and fix
-fix_dirlistTimes
+fix_dirlistTimes(dflag)
 
 % Error counter for rawfiles reads/decompress
 PARAMS.error.csl = 0;   % count sync losses
-
+1;
 % check for schedule over-run
 sflag = 0;
 % check if directory overrun because of scheduled data and non-full raw
@@ -123,12 +124,15 @@ headblk = 12;   % data block header length in bytes
 % file will have 900,000,000 bytes (450x10^6 samples) of data + some
 % header.  The last XWAV file made from an HRP file will likely have less
 % than 30 raw files (disk writes) in it...
+1;
+
 
 NRF = 30;
+ndir = ndir - 1; % TODO don't need this for actual implementation
 nhrp = NRF;  % 30 raw files
 dxwav = ndir/nhrp;   % total decimal number of XWAV files
 nxwav = ceil(dxwav); % number of XWAV files
-ndir = ndir - 2; % TODO need this only for when file truncated mid raw file
+
 % Generate XWAV file name prefix based on Experiment, Site or Instrument
 % date/time of 1st data sample info will be used in latter part of name
 %
@@ -150,85 +154,78 @@ end
 fid = fopen(infilename,'r');
 
 bflag = 0;
-k = 0;
-% loop over raw files
-for h = 1:ndir
-    % if we need to make another xwav file
-    if mod(h-1, NRF) == 0
-        
-        % xwav number we're on
-        k = k+1;
-        % if not generating the first xwav, close the previous one
-        if k ~= 1
-            fclose(fod);
-        end
-        
-        % first raw file header in XWAV
-        fhdr = NRF * (k - 1) + 1;
-        % generate XWAV file name based on date/time of first raw file header
-        date_name = num2str([PARAMS.head.dirlist(fhdr,2),PARAMS.head.dirlist(fhdr,3),PARAMS.head.dirlist(fhdr,4)],'%02d');
-        time_name = num2str([PARAMS.head.dirlist(fhdr,5),PARAMS.head.dirlist(fhdr,6),PARAMS.head.dirlist(fhdr,7)],'%02d');
-        name = [prefix,date_name,'_',time_name,'.x.wav'];
-        if ispc % if PC/Windows OS
-            fname = [outdir,'\',name];
-        else
-            fname = [outdir,name];
-        end
-        if PARAMS.dflag
-            disp(' ')
-            disp(['Filename = ',fname])
-            disp(' ')
-            disp(['XWAV File ',num2str(k),' out of ',num2str(nxwav)])
-            disp(' ')
-        end
-        % open XWAV file
-        fod = fopen(fname,'w');
-        % change nhrp for last file, if needed
-        if k == nxwav && nxwav ~= dxwav
-            nhrp = round((dxwav - (nxwav - 1)) * nhrp);
-        end
-        % write XWAV header info
-        write_XWAVhead_modified(fod,fhdr,nhrp,1) 
+% loop over the XWAV files
+for k = 1:nxwav
+    if k == 7
+        1;
     end
-    
-    % raw file operations
-    % skip to start of raw file
-    status = fseek(fid,PARAMS.head.dirlist(h,1)*512,'bof');
-    if status ~= 0
-        disp(['Error - failed fseek to byte ',num2str(PARAMS.head.dirlist(h,1)*512)])
-        fclose('all')
-        bflag = 1;
-        break
+%for k = 1:1
+    % special case loops
+    % for k = nxwav:nxwav
+    % for k = 78:109
+%     for k = 70:70
+    % first raw file header in XWAV
+    fhdr = NRF * (k -1) + 1;
+    % gnerate XWAV file name based on date/time of first raw file header
+    date_name = num2str([PARAMS.head.dirlist(fhdr,2),PARAMS.head.dirlist(fhdr,3),PARAMS.head.dirlist(fhdr,4)],'%02d');
+    time_name = num2str([PARAMS.head.dirlist(fhdr,5),PARAMS.head.dirlist(fhdr,6),PARAMS.head.dirlist(fhdr,7)],'%02d');
+    name = [prefix,date_name,'_',time_name,'.x.wav'];
+    if ispc % if PC/Windows OS
+        fname = [outdir,'\',name];
+    else
+        fname = [outdir,name];
     end
-    if PARAMS.dflag
-        disp(['Raw File : ',num2str(h)])
+    if dflag
+        disp(' ')
+        disp(['Filename = ',fname])
+        disp(' ')
+        disp(['XWAV File ',num2str(k),' out of ',num2str(nxwav)])
+        disp(' ')
     end
-    % check for data type and read/write data
-    if ~PARAMS.cflag     % non-compression and 4 channel
-        % loop over sectors in harp raw file
-        for m = 1:PARAMS.head.dirlist(h,10)
-            fseek(fid,headblk,0);	% skip over header, assume time is good
-            % (ie only dirlisting for timing)
-            % TODO switch all these back to no decimation
-            if PARAMS.nch == 4
-                fwrite(fod,fread(fid,PARAMS.nsampPerSect,'uint16')-32767,'int16');
-            else
-                fwrite(fod,fread(fid,PARAMS.nsampPerSect,'int16'),'int16');
+    % open XWAV file
+    fod = fopen(fname,'w');
+    % change nhrp for last file, if needed
+    if k == nxwav && nxwav ~= dxwav
+        nhrp = round((dxwav - (nxwav - 1)) * nhrp);
+    end
+    % write XWAV header info
+    write_XWAVhead(fod,fhdr,nhrp)
+    % loop over raw files and get the data into XWAV file
+    for h = 1:nhrp
+        % skip to start of raw file
+        status = fseek(fid,PARAMS.head.dirlist(fhdr+h-1,1)*512,'bof');
+        if status ~= 0
+            disp(['Error - failed fseek to byte ',num2str(PARAMS.head.dirlist(fhdr+h-1,1)*512)])
+            fclose('all')
+            bflag = 1;
+            break
+        end
+        if dflag
+            disp(['Raw File : ',num2str(h)])
+        end
+        % check for data type and read/write data
+        if ~PARAMS.cflag     % non-compression and 4 channel
+            % loop over sectors in harp raw file
+            for m = 1:PARAMS.head.dirlist(fhdr+h-1,10)
+                fseek(fid,headblk,0);	% skip over header, assume time is good
+                % (ie only dirlisting for timing)
+                if PARAMS.nch == 4
+                    fwrite(fod,fread(fid,PARAMS.nsampPerSect,'uint16')-32767,'int16');
+                else
+                    fwrite(fod,fread(fid,PARAMS.nsampPerSect,'int16'),'int16');
+                end
+                fseek(fid,PARAMS.tailblk,0);   % skip over tail bytes (=0 for nchan=1, =4 for nchan=4)
             end
-            fseek(fid,PARAMS.tailblk,0);   % skip over tail bytes (=0 for nchan=1, =4 for nchan=4)
+        else        % compression
+            fwrite(fod,decompressRawHRP(fid,h + NRF*(k-1),PARAMS.ctype),'int16');
         end
-    else        % compression
-        
-        fwrite(fod,decompressRawHRP(fid,h,PARAMS.ctype),'int16');
-    end
-    
+    end  % end for h, loop over raw files
+    % close XWAV file
+    fclose(fod);
     if bflag
         break
     end
 end
-
-% close the last xwav you were working on
-fclose(fod);
 % close raw HRP file
 fclose(fid);
 disp(' ')

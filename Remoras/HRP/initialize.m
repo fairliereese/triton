@@ -12,7 +12,7 @@ global HANDLES REMORA
 REMORA.hrpmenu = uimenu(HANDLES.remmenu,'Label','HRP File');
 % 'Convert HRP disk file to XWAVS'
  uimenu(REMORA.hrpmenu,'Label','Convert Multiple HRP Files to XWAV Files',...
-     'Callback','hrppd(''convert_multiHRP2XWAVS'')','Enable','off');
+     'Callback','hrppd(''convert_multiHRP2XWAVS'')','Enable','on');
  uimenu(REMORA.hrpmenu,'Label','Convert HRP File to XWAV Files',...
      'Callback','hrppd(''convert_HRP2XWAVS'')','Enable','on');
 % % 'Read Disk HRP file header'
@@ -27,4 +27,7 @@ uimenu(REMORA.hrpmenu,'Label','Check Directory List Times',...
 % plot sector times
 uimenu(REMORA.hrpmenu,'Label','Plot Sector Times',...
     'Enable','on','Callback','hrppd(''plotSectorTimes'')','Enable','on');
+% generate corrected dirlist times
+uimenu(REMORA.hrpmenu, 'Label', 'Fix Directory List Times', ...
+    'Enable', 'on', 'Callback', 'hrppd(''fixtimes'')', 'Enable', 'on');
 

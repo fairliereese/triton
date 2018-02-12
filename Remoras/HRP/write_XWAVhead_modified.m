@@ -1,16 +1,27 @@
-function write_XWAVhead(fod,fhdr,nhrp)
+function write_XWAVhead_modified(fod,fhdr,nhrp,fnum)
 %
-%   useage: >> write_XWAVhead(fod,fhdr,nhrp)
+%   useage: >> write_XWAVhead(fod,fhdr,nhrp,fnum)
 %   fod == XWAV output file id... should be open from calling program
 %   fhdr == first header in raw file corresponding to first data in XWAV
 %   nhrp == number of raw files used to make XWAV file (should be 30 or
 %   less)
+%   fnum == which XWAV is being processed currently. Used to index PARAMS
+%   variables correctly. This option is only needed if preparing more than
+%   one type of XWAV (ie normal and d10 and d100). 
+%   df == array of decimation factors. Usually will just be passed in as 1 to give
+%   full range of information; will only be a vector when using batch
+%   processing as we may want xwavs of different decimation factors.
+%   Indexed accordingly with fnum.
 %
 %   smw 050920
 %
 % added fixes for compression data
 % based on OneReadMultiWrites code
 % 101203 smw
+%
+%  changed to make compatible with the processing stream code (added the
+%  fnum and df parameters and altered code to support it)
+%  27.06.2017 fr
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Past history (stolen from wrxwavhd:
@@ -37,9 +48,17 @@ function write_XWAVhead(fod,fhdr,nhrp)
 % 07/22/04 yhl implemented the harp header.  Put arbitary data into the
 % header (based on the real information from score 15)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-1;
+global PARAMS REMORA
 
-global PARAMS
+% if from the processing stream, we'll have df in a global
+if ~isfield(PARAMS, 'fromProc')
+   df = 1;
+else
+   df = REMORA.hrp.dfs(fnum);
+end
+
+% sample rate 
+fs = PARAMS.fs/df;
 
 % wav file header parameters
 % RIFF Header stuff:
@@ -52,42 +71,57 @@ byteloc = (8+4) + (8+16) + 64 + (32 * nhrp) + 8;
 fsize = 16;  % format chunk size
 fcode = 1;   % compression code (PCM = 1)
 
-% PARAMS.nBits = 16;
+PARAMS.nBits = 16;
 % number of channels is now read in read_rawHARPhead.m
 PARAMS.samp.byte = floor(PARAMS.nBits/8);
-PARAMS.xhd.ByteRate = PARAMS.fs * PARAMS.nch * PARAMS.samp.byte;
+PARAMS.xhd.ByteRate = fs * PARAMS.nch * PARAMS.samp.byte;
 PARAMS.xhd.BytePerSampleSlice = PARAMS.nch * PARAMS.samp.byte; % ie BlockAlign
 PARAMS.xhd.WavVersionNumber = 1;
 PARAMS.xgain(1) = 1;
 
-% % number of samples in sector depends on number of channels (ie firmware)
-% if PARAMS.nch == 1
-%     nsampPerSect = 250;
-% elseif PARAMS.nch == 4
-%     nsampPerSect = 248;
-% else
-%     disp_msg('ERROR : Unsupported number of Channels')
-%     disp_msg(['nch = ',num2str(PARAMS.nch)])
-% end
-% % number of bytes per sector
-% % nbytesPerSect = nsampPerSect * PARAMS.samp.byte;
-% % number of samples per raw file
-% if PARAMS.nch == 1
-%     if fs == 320000
-%         nsampPerRawFile = 14e6;
-%     elseif fs <= 200000
-%         nsampPerRawFile = 15e6;
-%     else
-%         errodlg('Unknown Sample Rate!')
-%     end
-% elseif PARAMS.nch == 4
-%     nsampPerRawFile = 14384000;
-% end
+
+% TODO same ckFirmware thing here 
+% number of samples in sector depends on number of channels (ie firmware)
+if ~isfield(PARAMS, 'nsampPerSect')
+    if PARAMS.nch == 1
+        PARAMS.nsampPerSect = 250;
+    elseif PARAMS.nch == 4
+        PARAMS.nsampPerSect = 248;
+    else
+        disp_msg('ERROR : Unsupported number of Channels')
+        disp_msg(['nch = ',num2str(PARAMS.nch)])
+    end
+end
+% number of bytes per sector
+% nbytesPerSect = nsampPerSect * PARAMS.samp.byte;
+% number of samples per raw file
+
+% TODO should the following block stay commented out? Most of this 
+% info can be gotten from ckFirmware anyway...
+if ~isfield(PARAMS, 'nsampPerRawFile')
+    if PARAMS.nch == 1
+        if fs == 320000
+            PARAMS.nsampPerRawFile = 14e6;
+        elseif fs <= 200000
+            PARAMS.nsampPerRawFile = 15e6;
+        else
+            errodlg('Unknown Sample Rate!')
+        end
+    elseif PARAMS.nch == 4
+        PARAMS.nsampPerRawFile = 14384000;
+    end
+end
+
+% TODO same ckFirmware deal with this one
+if ~isfield(PARAMS, 'nsectPerRawFile')
+    PARAMS.nsectPerRawFile = PARAMS.nsampPerRawFile / PARAMS.nsampPerSect;
+end
+
 % number of bytes per raw file
 nbytesPerRawFile = PARAMS.samp.byte * PARAMS.nsampPerRawFile;
 
 % number of samples per XWAV file
-PARAMS.nsamp = nhrp * PARAMS.nsampPerRawFile;
+PARAMS.nsamp = nhrp * PARAMS.nsampPerRawFile / df;
 bytelength = PARAMS.nsamp * PARAMS.nBits/8;
 
 wavsize = bytelength+36+harpsize+8;  % required for the RIFF header
@@ -117,7 +151,7 @@ fprintf(fod,'%c',' ');
 fwrite(fod,fsize,'uint32');
 fwrite(fod,fcode,'uint16');
 fwrite(fod,PARAMS.nch,'uint16');         
-fwrite(fod,PARAMS.fs,'uint32');
+fwrite(fod,fs,'uint32');
 fwrite(fod,PARAMS.xhd.ByteRate,'uint32');
 fwrite(fod,PARAMS.xhd.BytePerSampleSlice,'uint16');
 fwrite(fod,PARAMS.nBits,'uint16');
@@ -165,14 +199,14 @@ for k = 1:nhrp
     % byte location of raw file k in this xwav
     if k > 1
         %         fwrite(fod, byteloc + sum(PARAMS.head.dirlist(fhdr:fhdr+k-2,10))*nbytesPerSect, 'uint32');
-        fwrite(fod, byteloc + nbytesPerRawFile * (k-1), 'uint32');
+        fwrite(fod, byteloc + nbytesPerRawFile * (k-1)/df, 'uint32');
     else
         fwrite(fod, byteloc , 'uint32');
     end
 
-    fwrite(fod, nbytesPerRawFile, 'uint32');
-    fwrite(fod, PARAMS.nsectPerRawFile, 'uint32');
-    fwrite(fod, PARAMS.fs, 'uint32');
+    fwrite(fod, nbytesPerRawFile/df, 'uint32');
+    fwrite(fod, PARAMS.nsectPerRawFile/df, 'uint32');
+    fwrite(fod, fs, 'uint32');
     fwrite(fod, PARAMS.xgain(1), 'uint8');
     fwrite(fod, 0, 'uchar'); % padding
     fwrite(fod, 0, 'uchar');

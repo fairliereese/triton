@@ -1,7 +1,7 @@
-function read_rawHARPdir(filename,d)
+function read_rawHARPdir(filename,dflag)
 %
-% usage: >> read_rawHARPdir(filename,d)
-%       if d = 1, then display directory listing values in command window
+% usage: >> read_rawHARPdir(filename,dflag)
+%       if dflag = 1, then display directory listing values in command window
 %
 % this function calls the function read_rawHARPhead to get disk header values
 % then reads the directory list, rearranges values and puts values in
@@ -37,16 +37,10 @@ if ~exist(filename) %#ok<EXIST>
     return
 end
 
-% read raw HARP disk header info
-read_rawHARPhead(filename,0)
-
-% display flag: display values = 1
-if d
-    dflag = 1;
-else
-    dflag = 0;
+% read raw HARP disk header info if need be 
+if ~isfield(PARAMS, 'head')
+    read_rawHARPhead(filename,dflag)
 end
-
 
 if PARAMS.head.firstDirSector ~= 8
     return

@@ -1,7 +1,7 @@
-function read_rawHARPhead(filename,d)
+function read_rawHARPhead(filename,dflag)
 %
 % usage: >> read_rawHARPhead(filename,d)
-%       if d = 1, then display header values in command window
+%       if dflag = 1, then display header values in command window
 %
 % function to read raw HARP disk header info from raw HARP datafile (*.hrp)
 % and put disk header info into global variable structure PARAMS
@@ -36,13 +36,6 @@ global PARAMS
 
 PARAMS.head = [];
 
-% display flag: display values = 1
-if d
-    dflag = 1;
-else
-    dflag = 0;
-end
-
 % check to see if file exists - return if not
 if ~exist(filename)
     disp_msg(['Error - no file ',filename])
@@ -51,6 +44,11 @@ end
 
 % open raw HARP file
 fid = fopen(filename,'r'); % little Endian is default for PC
+
+% store away the filename and path, along with deployment information
+PARAMS.head.fileloc = filename;
+% % PARAMS.head.projName = filename(end-20:end-16);
+% % PARAMS.head.siteName = filename(end-15
 
 % read first 3 sectors:
 
@@ -80,13 +78,14 @@ else
 end
 
 if dflag
+    disp_msg(' ');
     if PARAMS.head.ftype == 1
         disp_msg('filetype 1: USB file')
     elseif PARAMS.head.ftype == 2
         disp_msg('filetype 2: FTP file')
     else
         disp_msg('error: unknow type')
-        disp_msg(['dt1= ',dt1,'  dt2= ',dt2])
+        disp_msg(sprintf('dt1= %s dt2= %s', dt1, dt2));
         return
     end
 end
@@ -145,26 +144,26 @@ PARAMS.head.unusedSector = little2big_4byte(sect2(177:180));
 if dflag
     disp_msg(' ')
     disp_msg('Sector 0: ')
-    disp_msg(['Disk Type = ',PARAMS.head.disktype])
-    disp_msg(['Disk Number = ',num2str(PARAMS.head.disknumberSector0)])
+    disp_msg(sprintf('Disk Type = %s',PARAMS.head.disktype));
+    disp_msg(sprintf('Disk Number = %d',PARAMS.head.disknumberSector0));
     disp_msg(' ')
     
     disp_msg('Sector 2: ')
-    disp_msg(['First Directory Location [Sectors] = ',num2str(PARAMS.head.firstDirSector)])
-    disp_msg(['Current Directory Location [Sectors] = ',num2str(PARAMS.head.currDirSector)])
+    disp_msg(sprintf('First Directory Location [Sectors] = %d',PARAMS.head.firstDirSector));
+    disp_msg(sprintf('Current Directory Location [Sectors] = %d',PARAMS.head.currDirSector));
     disp_msg(' ')
-    disp_msg(['First File Location [Sectors] = ',num2str(PARAMS.head.firstFileSector)])
-    disp_msg(['Next File Location [Sectors] = ',num2str(PARAMS.head.nextFileSector)])
+    disp_msg(sprintf('First File Location [Sectors] = %d',PARAMS.head.firstFileSector));
+    disp_msg(sprintf('Next File Location [Sectors] = %d',PARAMS.head.nextFileSector));
     disp_msg(' ')
-    disp_msg(['Max Number of Files = ',num2str(PARAMS.head.maxFile)])
-    disp_msg(['Next File = ',num2str(PARAMS.head.nextFile)])
+    disp_msg(sprintf('Max Number of Files = %d',PARAMS.head.maxFile));
+    disp_msg(sprintf('Next File = %d',PARAMS.head.nextFile));
     disp_msg(' ')
-    disp_msg(['Sample rate = ',num2str(PARAMS.head.samplerate)])
-    disp_msg(['Disk Number = ',num2str(PARAMS.head.disknumberSector2)])
-    disp_msg(['Firmware Version = ',PARAMS.head.firmwareVersion])
-    disp_msg(['Description = ',PARAMS.head.description])
-    disp_msg(['Disk Size [Sectors] = ',num2str(PARAMS.head.disksizeSector)])
-    disp_msg(['Unused Disk [Sectors] = ',num2str(PARAMS.head.unusedSector)])
+    disp_msg(sprintf('Sample rate = %d',PARAMS.head.samplerate));
+    disp_msg(sprintf('Disk Number = %d',PARAMS.head.disknumberSector2));
+    disp_msg(sprintf('Firmware Version = %s',deblank(PARAMS.head.firmwareVersion)));
+    disp_msg(sprintf('Description = %s',deblank(PARAMS.head.description)));
+    disp_msg(sprintf('Disk Size [Sectors] = %d',PARAMS.head.disksizeSector));
+    disp_msg(sprintf('Unused Disk [Sectors] = %d',PARAMS.head.unusedSector));
 end
 % close raw HARP file
 fclose(fid);

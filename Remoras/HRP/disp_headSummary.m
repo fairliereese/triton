@@ -1,4 +1,4 @@
-function disp_headSummary(nfiles)
+function msgs = disp_headSummary(nfiles)
 %
 %
 % display PARAMS.headall structure in useful format...
@@ -7,12 +7,12 @@ function disp_headSummary(nfiles)
 %
 global PARAMS
 
-disp_msg(' ')
-disp_msg(['HARP *head.hrp disk header values'])
-disp_msg(' ')
-disp_msg(['Directory : ',PARAMS.inpath])
-disp_msg(['Number of *head.hrp files : ',num2str(nfiles)])
-disp_msg(['Evaluation Date : ',datestr(date,29)])
+disp_msg(' ');
+disp_msg('HARP *head.hrp disk header values');
+disp_msg(' ');
+disp_msg(sprintf('Directory : %s',PARAMS.inpath));
+disp_msg(sprintf('Number of *head.hrp files : %d',nfiles));
+disp_msg(sprintf('Evaluation Date : %s',datestr(date,29)));
 
 
 % disp_msg(['Disk Number            ',sprintf('%8d',PARAMS.headall.disknumberSector0)])
@@ -26,31 +26,31 @@ sectors = [PARAMS.headall.disknumberSector0; ...
     PARAMS.headall.firstFileSector; PARAMS.headall.nextFileSector; ...
     PARAMS.headall.unusedSector; PARAMS.headall.disksizeSector];
 
-disp_msg(' ')
-disp_msg('Sectors : ')
-disp_msg(' ')
-disp_msg('Disk        1st      Curr      1st       Next      Disk      Disk')
-disp_msg(' #          Dir      Dir       File      File      Unused    Size')
-disp_msg(num2str(sectors'))
+disp_msg(' ');
+disp_msg('Sectors : ');
+disp_msg(' ');
+disp_msg('Disk        1st      Curr      1st       Next      Disk      Disk');
+disp_msg(' #          Dir      Dir       File      File      Unused    Size');
+disp_msg((num2str(sectors')));
 
 
-disp_msg(' ')
-disp_msg('Timing Evaluation : ')
-disp_msg(' ')
+disp_msg(' ');
+disp_msg('Timing Evaluation : ');
+disp_msg(' ');
 
-disp_msg(['Eval Sample Rate : ',num2str(PARAMS.rec.sr),' [kHz]' ])
-disp_msg(['Eval Interval    : ',num2str(PARAMS.rec.int),' [min]'])
-disp_msg(['Eval Duration    : ',num2str(PARAMS.rec.dur),' [min]'])
-disp_msg(' ')
+disp_msg(sprintf('Eval Sample Rate : %d kHz',PARAMS.rec.sr));
+disp_msg(sprintf('Eval Interval    : %0.2f min',PARAMS.rec.int));
+disp_msg(sprintf('Eval Duration    : %0.2f min',PARAMS.rec.dur));
+disp_msg(' ');
 
 timeEval = [PARAMS.headall.disknumberSector2; ...
     PARAMS.headall.nextFile; PARAMS.headall.maxFile; ...
     PARAMS.headall.numTimingErrors];
 
-disp_msg('Disk Next Max   Num')
-disp_msg(' #   File File  TE')
-disp_msg(num2str(timeEval'))
-disp_msg(' ')
+disp_msg('Disk Next Max   Num');
+disp_msg(' #   File File  TE');
+disp_msg(num2str(timeEval'));
+disp_msg(' ');
 
 % disp_msg(' ')
 % disp_msg('Misc : ')
