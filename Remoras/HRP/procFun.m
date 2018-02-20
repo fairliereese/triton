@@ -27,6 +27,9 @@ disks = REMORA.hrp.disks;
 dataID = REMORA.hrp.dataID;
 % headerfile = REMORA.hrp.headerfile;
 
+% location to save different processing-related files
+proc_save = REMORA.hrp.proc_save;
+
 % bools
 rmfifo = REMORA.hrp.rmfifo;
 fixTimes = REMORA.hrp.fixTimes;
@@ -43,17 +46,17 @@ dfs = REMORA.hrp.dfs;
 ltsas = REMORA.hrp.ltsas;
 
 % names of resume disk files
-rd_mat = fullfile(path,'resumeDisk.mat');
+rd_mat = fullfile(proc_save,'resumeDisk.mat');
 % rd_struct = fullfile(path,'resumeStruct.mat');
-rd_mat_back = fullfile(path,'resumeDisk_back.mat');
+rd_mat_back = fullfile(proc_save,'resumeDisk_back.mat');
 % rd_struct_back = fullfile(path,'resumeStruct_BAK.mat');
 
-% enable diary?
-if diary_bool
-    dfile = fullfile(path, sprintf('%s_log.txt', dataID));
-    fclose(fopen(dfile, 'w')); 
-    diary(dfile);
-end
+% % enable diary?
+% if diary_bool
+%     dfile = fullfile(proc_save, sprintf('%s_disk%s_log.txt', dataID, disk));
+%     fclose(fopen(dfile, 'w')); 
+%     diary(dfile);
+% end
 
 % check to see whether necessary resume disk files are there
 if resumeDisk
@@ -88,6 +91,13 @@ for i = disk_start:size(files, 1)
 %         questdlg(sprintf('Modified directory list times found for disk %s, use?',...
 %         disk));
 %     end
+
+    % enable diary?
+    if diary_bool
+        dfile = fullfile(proc_save, sprintf('%s_disk%s_log.txt', dataID, disk));
+        fclose(fopen(dfile, 'w')); 
+        diary(dfile);
+    end
 %     
     % load in directory list times and firmware information
     REMORA.hrp.curr = fullfile(path, files(i, :));

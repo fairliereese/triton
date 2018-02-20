@@ -56,6 +56,7 @@ if ~isfield(PARAMS, 'xhd')
     REMORA.hrp.path = path; % used to be PARAMS.proc.path
     REMORA.hrp.disks = disks;
     REMORA.hrp.dataID = dataID;
+    REMORA.hrp.proc_save = fullfile(REMORA.hrp.path, 'processing_files');
     
     % LTSA channel default - TODO change this so that different ch LTSAS
     % can be made
@@ -65,9 +66,14 @@ if ~isfield(PARAMS, 'xhd')
     save_param = questdlg('Save your current parameters?');
     if strcmp(save_param, 'Yes')
         try
-            name = fullfile(REMORA.hrp.path, sprintf('%s_procparams_diskinfo', dataID));
-            [savefile, savepath] = uiputfile('*.mat', 'Save file',name);
-            save(fullfile(savepath, savefile), 'REMORA', 'PARAMS');
+            % make processing directory for log, errors, resume, etc
+            if exist(REMORA.hrp.proc_save) ~= 7
+                mkdir(REMORA.hrp.proc_save);
+            end
+       
+            name = fullfile(REMORA.hrp.proc_save, sprintf('%s_procparams_diskinfo', dataID));
+            savefile = uiputfile('*.mat', 'Save file',name);
+            save(fullfile(REMORA.hrp.proc_save, savefile), 'REMORA', 'PARAMS');
         catch
             disp('Invalid file selected or cancel button pushed.')
         end
