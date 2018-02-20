@@ -8,6 +8,8 @@ function hrp2xwav()
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 global PARAMS HANDLES DATA
+1;
+
 build_gui;
     function close(~,~)
         delete(HANDLES.fig.convert)
@@ -54,7 +56,7 @@ build_gui;
         [infile,inpath]=uigetfile(filterSpec1,boxTitle1);
         
         disp_msg('Opened File: ')
-        disp_msg([inpath,infile])
+        disp_msg(fullfile(inpath, infile));
         
         % if the cancel button is pushed, then no file is loaded
         % so exit this script
@@ -260,8 +262,8 @@ build_gui;
             disp_msg(num2str(fs))
             
             % open output file
-            outfile = [outfile(1:length(outfile)-6),char(64+ii),'.x.wav'];
-            fod = fopen([outpath,outfile],'w');
+%             outfile = [outfile(1:length(outfile)-6),char(64+ii),'.x.wav'];
+            fod = fopen(fullfile(outpath,outfile),'w');
             
             % make global for calling programs
             PARAMS.outfile = outfile;
