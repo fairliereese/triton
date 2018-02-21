@@ -491,8 +491,9 @@ build_gui;
                 status = fseek(fod,skip,'bof');     % go back to writing data location
                 fwrite(fod,sum(byte_length(1:nhrp)),'uint32');
                 
-                % close XWAV file
+                % close XWAV file and hrp file
                 fclose(fod);
+                fclose(fid);
                 
             end % end dtype - data type
             
