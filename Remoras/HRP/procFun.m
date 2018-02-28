@@ -42,6 +42,7 @@ rf_end = REMORA.hrp.rf_end;
 rf_start = REMORA.hrp.rf_start;
 
 % vectors
+REMORA.hrp.dfs = sort(REMORA.hrp.dfs);
 dfs = REMORA.hrp.dfs;
 ltsas = REMORA.hrp.ltsas;
 
@@ -245,11 +246,15 @@ for i = disk_start:size(files, 1)
              
             % wr_data is the data we'll use to write for this df
             if dfs(k) ~= 1
-                wr_data = decimate(data, dfs(k));
-%                 wr_data = decimate_partial(data, dfs(k));
+%                 wr_data = decimate(data, dfs(k));
+                wr_data = decimate_partial(data, dfs(k));
             else
                 wr_data = data;
             end
+            
+%             % cut down on redundant decimation TODO 
+%             prev_data = wr_data;
+%             prev_df = df;
             
             % adjust byte we're writing to if resuming processing
             if resumeDisk                
@@ -377,6 +382,6 @@ PARAMS = rmfield(PARAMS, 'fromProc');
 
 toc
 % profile off;
-% profsave(profile('info'), 'normal_profile_results');
+% profsave(profile('info'), fullfile(proc_save, 'decimate_partial_profile_results'));
 end
 

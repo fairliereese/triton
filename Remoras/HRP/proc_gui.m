@@ -56,7 +56,7 @@ if ~isfield(PARAMS, 'xhd')
     REMORA.hrp.path = path; % used to be PARAMS.proc.path
     REMORA.hrp.disks = disks;
     REMORA.hrp.dataID = dataID;
-    REMORA.hrp.proc_save = fullfile(REMORA.hrp.path, 'processing_files');
+    REMORA.hrp.proc_save = fullfile(REMORA.hrp.path, 'ProcessingFiles');
     
     % LTSA channel default - TODO change this so that different ch LTSAS
     % can be made
@@ -71,7 +71,19 @@ if ~isfield(PARAMS, 'xhd')
                 mkdir(REMORA.hrp.proc_save);
             end
        
-            name = fullfile(REMORA.hrp.proc_save, sprintf('%s_procparams_diskinfo', dataID));
+            % create filename with disk information
+            disk_nums = zeros(size(REMORA.hrp.disks, 1), 1);
+            for k = 1:size(REMORA.hrp.disks, 1)
+                disk_nums(k) = str2num(REMORA.hrp.disks(k, :));
+            end
+            
+            if length(disk_nums) == 1
+                filename = sprintf('%s_disk%02d_procparams', dataID, disk_nums);
+            else
+                filename = sprintf('%s_disks%02d-%02d_procparams', dataID, min(disk_nums), max(disk_nums));
+            end
+                
+            name = fullfile(REMORA.hrp.proc_save, filename);
             savefile = uiputfile('*.mat', 'Save file',name);
             save(fullfile(REMORA.hrp.proc_save, savefile), 'REMORA', 'PARAMS');
         catch
